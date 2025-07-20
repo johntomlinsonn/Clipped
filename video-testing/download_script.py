@@ -13,14 +13,16 @@ def extract_transcript_with_timestamps(info, output_path):
         transcript_path = os.path.join(output_path, transcript_filename)
         
         # Try to get subtitles from the info
-
+        subtitles = info.get('subtitles', {})
         automatic_captions = info.get('automatic_captions', {})
         
         # Look for English subtitles first, then auto-generated
         subtitle_data = None
-        if 'en' in automatic_captions:
+        if 'en' in subtitles:
+            subtitle_data = subtitles['en']
+        elif 'en' in automatic_captions:
             subtitle_data = automatic_captions['en']
-       
+        
         if subtitle_data:
             # Find VTT format subtitles
             vtt_subtitle = None
@@ -43,6 +45,9 @@ def extract_transcript_with_timestamps(info, output_path):
                     # Save to file
                     with open(transcript_path, 'w', encoding='utf-8') as f:
                         f.write(f"Video Title: {title}\n")
+                        f.write(f"URL: {info.get('webpage_url', 'Unknown')}\n")
+                        f.write(f"Duration: {info.get('duration', 'Unknown')} seconds\n")
+                        f.write("=" * 50 + "\n\n")
                         f.write(transcript_text)
                     
                     return transcript_path
@@ -179,7 +184,6 @@ def download_specific_quality(url, height=1080, output_path='downloads'):
         height: Video height (e.g., 720, 1080, 1440, 2160 for 4K)
         output_path: Download directory
     """
-    
     # Create downloads directory
     os.makedirs(output_path, exist_ok=True)
     
@@ -189,8 +193,7 @@ def download_specific_quality(url, height=1080, output_path='downloads'):
     ydl_opts = {
         'format': format_string,
         'outtmpl': os.path.join(output_path, '%(title)s_%(height)sp.%(ext)s'),
-        'writeinfojson': True,
-        # Don't write subtitle files directly - we'll process them programmatically
+        'writeinfojson': False,
         'writesubtitles': False,
         'writeautomaticsub': False,
         'merge_output_format': 'mp4',
@@ -198,21 +201,32 @@ def download_specific_quality(url, height=1080, output_path='downloads'):
     
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
-            print(f"Title: {info.get('title', 'Unknown')}")
-            print(f"Requesting: {height}p quality")
-            
-            ydl.download([url])
-            
-            # Extract and save transcript with timestamps
-            transcript_path = extract_transcript_with_timestamps(info, output_path)
-            if transcript_path:
-                print(f"Transcript saved to: {transcript_path}")
-            
-            print(f"Download completed in {height}p!")
-            
-            return info
-            
+             info = ydl.extract_info(url, download=False)
+             print(f"Title: {info.get('title', 'Unknown')}")
+             print(f"Requesting: {height}p quality")
+             
+             # Extract and save transcript with timestamps
+             transcript_path = extract_transcript_with_timestamps(info, output_path)
+             if not transcript_path:
+                 print("Error extracting transcript, aborting download.")
+                 return None
+             # Validate transcript file length
+             try:
+                 with open(transcript_path, 'r', encoding='utf-8') as f:
+                     lines = f.readlines()
+                 if len(lines) <= 7:
+                     print("Error: Transcript too short, aborting download.")
+                     os.remove(transcript_path)
+                     return None
+                 print(f"Transcript saved to: {transcript_path}")
+             except Exception as e:
+                 print(f"Error validating transcript: {e}")
+                 return None
+
+             # Download video now that transcript exists
+             ydl.download([url])
+             print(f"Download completed in {height}p!")
+             return info
     except Exception as e:
         print(f"Error downloading: {str(e)}")
         return None

@@ -139,10 +139,18 @@ for idx, chunk in enumerate(chunks, start=1):
         print(content)
 
 # Pretty-print aggregated viral moments
-
-
 for moment in all_moments:
     start = moment.get("time_start")
     end = moment.get("time_end")
     desc = moment.get("description")
     print(f"[{start} - {end}] {desc}")
+
+# Save moments to a structured JSON file
+moments_dir = Path(__file__).parent / 'moments'
+moments_dir.mkdir(exist_ok=True)
+# Derive output filename from transcript filename
+transcript_name = Path(transcript_path).stem
+output_file = moments_dir / f"{transcript_name}_moments.json"
+with open(output_file, 'w', encoding='utf-8') as f:
+    json.dump({'viral_moments': all_moments}, f, indent=2)
+print(f"Saved moments JSON to: {output_file}")

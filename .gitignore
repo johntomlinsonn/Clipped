@@ -1,4 +1,8 @@
 *.env
 downloads/
-video-testing/clips/
-video-testing/moments/
+video-testing-flow/clips/
+video-testing-flow/moments/
+video-testing-flow/clip-moments/
+video-testing-flow/__pycache__/
+*.pyc
+*.pyo

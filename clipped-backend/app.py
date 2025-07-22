@@ -5,6 +5,7 @@ from routers.transcribe import router as transcribe_router
 from routers.clip import router as clip_router
 from routers.cleanup import router as cleanup_router
 from routers.analyze import router as analyze_router
+from routers.full_flow import router as full_flow_router
 
 app = FastAPI(title="Clipped API")
 
@@ -13,6 +14,7 @@ app.include_router(transcribe_router, prefix="/transcribe", tags=["transcribe"])
 app.include_router(clip_router, prefix="/clip", tags=["clip"])
 app.include_router(cleanup_router, prefix="/cleanup", tags=["cleanup"])
 app.include_router(analyze_router, prefix="/analyze", tags=["analyze"])
+app.include_router(full_flow_router, prefix="/full_flow", tags=["full_flow"])
  
 # Mount central storage for media files (downloads, clips, transcripts, etc.)
 from fastapi.staticfiles import StaticFiles

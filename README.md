@@ -17,7 +17,7 @@ A tool to take in YouTube videos and generate viral short clips.
    ```powershell
    python -m venv venv
    # Windows (PowerShell):
-   .\\venv\\Scripts\\Activate.ps1
+   .venv/scripts/activate
    # Linux/macOS:
    source venv/bin/activate
    ```
@@ -29,7 +29,7 @@ A tool to take in YouTube videos and generate viral short clips.
 
 ## Configuration
 
-1. Create a `.env` file in the project root with:
+1. Create a `.env` file in the `clipped-backend/` with:
    ```properties
    CEREBRAS_API_KEY=<your_api_key>
    STORAGE_DIR=../storage

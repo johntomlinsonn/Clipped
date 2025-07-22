@@ -3,6 +3,7 @@ from pathlib import Path
 
 from moviepy.audio.io.AudioFileClip import AudioFileClip
 from faster_whisper import WhisperModel
+from config import settings
 
 
 def create_transcript(video_path: str, url: str) -> Path:
@@ -17,8 +18,14 @@ def create_transcript(video_path: str, url: str) -> Path:
         Path: Path to the generated transcript text file.
     """
     video_path = Path(video_path)
+    # Prepare directories
+    audio_dir = settings.storage_dir / 'audio'
+    transcript_dir = settings.storage_dir / 'transcripts'
+    audio_dir.mkdir(parents=True, exist_ok=True)
+    transcript_dir.mkdir(parents=True, exist_ok=True)
+
     # Extract audio to mp3
-    audio_path = video_path.with_suffix('.mp3')
+    audio_path = audio_dir / f"{video_path.stem}.mp3"
     clip = AudioFileClip(str(video_path))
     clip.write_audiofile(str(audio_path))
 
@@ -33,7 +40,7 @@ def create_transcript(video_path: str, url: str) -> Path:
     segments, _ = model.transcribe(str(audio_path))
 
     # Prepare transcript output
-    transcript_path = video_path.with_name(f"{video_path.stem}_transcript.txt")
+    transcript_path = transcript_dir / f"{video_path.stem}_transcript.txt"
     with open(transcript_path, 'w', encoding='utf-8') as f:
         f.write(f"Video: {video_path.name}\n")
         f.write(f"URL: {url}\n\n")

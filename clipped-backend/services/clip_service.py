@@ -3,11 +3,11 @@ from pathlib import Path
 import math
 import subprocess
 from moviepy.video.io.VideoFileClip import VideoFileClip
+from config import settings
 
 
 def clip_moments(video_path, json_path):
     """Create video subclips based on moments JSON, with subtitles."""
-    base = Path(__file__).parent
     # Load moments
     data = json.loads(Path(json_path).read_text(encoding='utf-8'))
     moments = data.get('viral_moments', [])
@@ -15,8 +15,8 @@ def clip_moments(video_path, json_path):
         return
 
     # Prepare output directory
-    clips_dir = base / 'clip-moments'
-    clips_dir.mkdir(exist_ok=True)
+    clips_dir = settings.storage_dir / 'clips'
+    clips_dir.mkdir(parents=True, exist_ok=True)
 
     # Load full video
     video = VideoFileClip(str(video_path))

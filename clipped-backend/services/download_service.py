@@ -2,9 +2,10 @@ import os
 import urllib.request
 from pathlib import Path
 import yt_dlp
+from config import settings
 
 # Downloads directory (unified)
-DOWNLOADS_DIR = Path(__file__).parent / 'downloads'
+DOWNLOADS_DIR = settings.storage_dir / 'downloads'
 DOWNLOADS_DIR.mkdir(parents=True, exist_ok=True)
 
 def download(url):

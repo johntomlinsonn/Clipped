@@ -10,25 +10,20 @@ router = APIRouter()
 
 @router.post("/", response_model=FullFlowResponse)
 async def full_flow_endpoint(req: FullFlowRequest):
-    try:
-        # Step 1: Download video
-        video_path = download_video(str(req.url))
-        if not video_path:
-            raise HTTPException(status_code=500, detail="Video download failed")
+    # Step 1: Download video
+    video_path = download_video(str(req.url))
+    if not video_path:
+        raise HTTPException(status_code=500, detail="Video download failed")
 
-        # Step 2: Transcribe video
-        transcript_path = create_transcript(str(video_path), str(req.url))
+    # Step 2: Transcribe video
+    transcript_path = create_transcript(str(video_path), str(req.url))
 
-        # Step 3: Analyze transcript
-        json_path = analyze_transcript(transcript_path)
+    # Step 3: Analyze transcript
+    json_path = analyze_transcript(transcript_path)
 
-        # Step 4: Clip based on analysis
-        clip_moments(str(video_path), str(json_path))
-        clips_dir = settings.storage_dir / 'clips'
-        clip_paths = sorted(str(p) for p in clips_dir.glob('*.mp4'))
+    # Step 4: Clip based on analysis
+    clip_moments(str(video_path), str(json_path))
+    clips_dir = settings.storage_dir / 'clips'
+    clip_paths = sorted(str(p) for p in clips_dir.glob('*.mp4'))
 
-        return FullFlowResponse(clip_paths=clip_paths)
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return FullFlowResponse(clip_paths=clip_paths)

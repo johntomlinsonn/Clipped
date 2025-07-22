@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from config import settings
+from exceptions import register_exception_handlers
 from routers.download import router as download_router
 from routers.transcribe import router as transcribe_router
 from routers.clip import router as clip_router
@@ -8,6 +9,7 @@ from routers.analyze import router as analyze_router
 from routers.full_flow import router as full_flow_router
 
 app = FastAPI(title="Clipped API")
+register_exception_handlers(app)
 
 app.include_router(download_router, prefix="/download", tags=["download"])
 app.include_router(transcribe_router, prefix="/transcribe", tags=["transcribe"])

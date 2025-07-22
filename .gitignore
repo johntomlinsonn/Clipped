@@ -9,3 +9,4 @@ video-testing-flow/__pycache__/
 *.venv/
 storage/
 clipped-backend/moments/
+clipped-backend/__pycache__/

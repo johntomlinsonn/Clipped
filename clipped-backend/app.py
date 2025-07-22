@@ -13,6 +13,14 @@ app.include_router(transcribe_router, prefix="/transcribe", tags=["transcribe"])
 app.include_router(clip_router, prefix="/clip", tags=["clip"])
 app.include_router(cleanup_router, prefix="/cleanup", tags=["cleanup"])
 app.include_router(analyze_router, prefix="/analyze", tags=["analyze"])
+ 
+# Mount central storage for media files (downloads, clips, transcripts, etc.)
+from fastapi.staticfiles import StaticFiles
+app.mount(
+    "/media",
+    StaticFiles(directory=str(settings.storage_dir)),
+    name="media"
+)
 
 if __name__ == "__main__":
     import uvicorn

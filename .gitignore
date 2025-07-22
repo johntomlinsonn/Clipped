@@ -6,3 +6,5 @@ video-testing-flow/clip-moments/
 video-testing-flow/__pycache__/
 *.pyc
 *.pyo
+*.venv/
+storage/

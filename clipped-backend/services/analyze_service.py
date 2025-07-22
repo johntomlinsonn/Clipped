@@ -97,7 +97,7 @@ def chunk_script(text, max_chars=8000):
     return [text[i:i+max_chars] for i in range(0, len(text), max_chars)]
 
 
-def analyze(transcript_path):
+def analyze_transcript(transcript_path):
     """Analyze a transcript file and output a JSON of viral moments."""
     transcript_path = Path(transcript_path)
     text = transcript_path.read_text(encoding='utf-8')

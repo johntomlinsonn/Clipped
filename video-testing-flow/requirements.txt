@@ -1,5 +1,0 @@
-moviepy
-yt-dlp
-cerebras-cloud-sdk
-python-dotenv
-openai-whisper

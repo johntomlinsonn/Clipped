@@ -38,7 +38,7 @@ async def full_flow_endpoint(req: FullFlowRequest):
     logging.info(f"Retrieving clips from {clips_dir}")
     clip_paths = sorted(str(p) for p in clips_dir.glob('*.mp4'))
 
-    #Step 5: Cleanup downloaded files
+    # Step 5: Cleanup temporary files (excluding clips)
     logging.info("Step 5: Cleaning up temporary files")
     cleanup(include_clips=False)
 

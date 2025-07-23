@@ -70,7 +70,14 @@ SYSTEM_PROMPT = r"""
 """
 
 def parse_time(ts: str) -> float:
-    parts = ts.strip().split(':')
+    ts_str = ts.strip()
+    # If format is plain seconds (e.g., '333.00'), parse directly
+    if ':' not in ts_str:
+        try:
+            return float(ts_str)
+        except ValueError:
+            raise ValueError(f"Invalid time format: {ts}")
+    parts = ts_str.split(':')
     if len(parts) == 2:
         return int(parts[0]) * 60 + float(parts[1])
     elif len(parts) == 3:

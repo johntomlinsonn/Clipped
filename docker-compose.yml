@@ -11,4 +11,3 @@ services:
       - ./storage:/app/storage
     env_file:
       - ./clipped-backend/.env
-

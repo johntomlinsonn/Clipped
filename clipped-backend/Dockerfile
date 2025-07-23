@@ -1,10 +1,11 @@
 # Base image with Python
 FROM python:3.11-slim
 
-RUN apt-get update && apt-get install -y ffmpeg && rm -rf /var/lib/apt/lists/*
 # Set working directory
 WORKDIR /app
 
+# Install ffmpeg (required for processing media files)
+RUN apt-get update && apt-get install -y ffmpeg && rm -rf /var/lib/apt/lists/*
 # Install dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt

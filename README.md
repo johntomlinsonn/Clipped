@@ -40,7 +40,7 @@ A tool to take in YouTube videos and generate viral short clips.
    STORAGE_DIR=./storage
    FASTAPI_HOST=127.0.0.1
    FASTAPI_PORT=8000
-TMP_DIR=./tmp
+   TMP_DIR=./tmp
    ```
 2. To get a free Cerebras Cloud API key, sign up at https://cloud.cerebras.ai/ and copy your key from the dashboard.
 

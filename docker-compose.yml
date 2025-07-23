@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  clipped-backend:
+    build:
+      context: ./clipped-backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./storage:/app/storage
+    env_file:
+      - ./clipped-backend/.env
+

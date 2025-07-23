@@ -1,0 +1,22 @@
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual envs
+venv/
+.env/
+
+# Git
+.git/
+.gitignore
+
+# IDE/project files
+.vscode/
+.idea/
+
+# Docker files themselves (won’t be needed in image)
+Dockerfile
+docker-compose.yml
+

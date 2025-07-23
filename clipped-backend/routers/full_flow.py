@@ -4,6 +4,7 @@ from services.download_service import download as download_video
 from services.transcribe_service import create_transcript
 from services.analyze_service import analyze_transcript
 from services.clip_service import clip_moments
+from services.cleanup_service import cleanup
 from config import settings
 
 import logging
@@ -36,5 +37,9 @@ async def full_flow_endpoint(req: FullFlowRequest):
     clips_dir = settings.storage_dir / 'clips'
     logging.info(f"Retrieving clips from {clips_dir}")
     clip_paths = sorted(str(p) for p in clips_dir.glob('*.mp4'))
+
+    #Step 5: Cleanup downloaded files
+    logging.info("Step 5: Cleaning up temporary files")
+    cleanup(include_clips=False)
 
     return FullFlowResponse(clip_paths=clip_paths)

@@ -12,6 +12,3 @@ services:
     env_file:
       - ./clipped-backend/.env
 
-volumes:
-  storage_data:
-    driver: local

@@ -8,7 +8,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - storage_data:/app/storage
+      - ./storage:/app/storage
     env_file:
       - ./clipped-backend/.env
 

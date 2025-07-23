@@ -38,12 +38,12 @@ def create_transcript(video_path: str, url: str) -> Path:
     model = WhisperModel(
         "distil-large-v3",
         device="cpu",
-        compute_type="int8",  # INT8 quantization for speed
-        cpu_threads=4           # Set number of threads as per your CPU cores
+        compute_type="int8",  
+        cpu_threads=4          
     )
     # returns (segments, info)
     segments, _ = model.transcribe(str(audio_path))
-    logging.info(f"Transcription produced {len(segments)} segments")
+    logging.info(f"Transcription produced")
 
     # Prepare transcript output
     transcript_path = transcript_dir / f"{video_path.stem}_transcript.txt"

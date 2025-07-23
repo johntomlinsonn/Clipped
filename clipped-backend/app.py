@@ -8,6 +8,11 @@ from routers.cleanup import router as cleanup_router
 from routers.analyze import router as analyze_router
 from routers.full_flow import router as full_flow_router
 
+import logging
+import coloredlogs
+
+coloredlogs.install(level='INFO')
+
 app = FastAPI(title="Clipped API")
 register_exception_handlers(app)
 

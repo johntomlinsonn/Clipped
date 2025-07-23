@@ -1,6 +1,11 @@
 # Clipped
 A tool to take in YouTube videos and generate viral short clips.
 
+## Quick Start
+
+- **Run with Python**: follow the [Setup](#setup) and [Running the server](#running-the-server) sections below.
+- **Run with Docker**: follow the [Docker](#docker) section below.
+
 ## Prerequisites
 
 - Python 3.10+ installed
@@ -32,7 +37,10 @@ A tool to take in YouTube videos and generate viral short clips.
 1. Create a `.env` file in the `clipped-backend/` with:
    ```properties
    CEREBRAS_API_KEY=<your_api_key>
-   STORAGE_DIR=../storage
+   STORAGE_DIR=./storage
+   FASTAPI_HOST=127.0.0.1
+   FASTAPI_PORT=8000
+TMP_DIR=./tmp
    ```
 2. To get a free Cerebras Cloud API key, sign up at https://cloud.cerebras.ai/ and copy your key from the dashboard.
 
@@ -43,6 +51,40 @@ uvicorn app:app --reload --host 127.0.0.1 --port 8000
 ```
 
 The API docs will be available at: `http://127.0.0.1:8000/docs`
+
+## Docker
+
+### Environment Variables
+
+Create or update the `.env` file in the `clipped-backend/` folder with:
+```properties
+CEREBRAS_API_KEY=<your_api_key>
+STORAGE_DIR=./storage
+FASTAPI_HOST=127.0.0.1
+FASTAPI_PORT=8000
+TMP_DIR=./tmp
+```
+
+### Build & Run with Docker Compose
+
+From the workspace root (`Clipped/`):
+```powershell
+docker-compose build clipped-backend
+docker-compose up -d
+```
+This will build the image, start the container on port `8000`, and bind-mount `./storage` → `/app/storage`.
+
+To stop and remove containers:
+```powershell
+docker-compose down
+```
+
+To view logs:
+```powershell
+docker-compose logs -f clipped-backend
+```
+
+API docs are available at: `http://localhost:8000/docs`
 
 ## Endpoints
 

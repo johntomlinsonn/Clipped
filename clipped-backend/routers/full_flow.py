@@ -35,7 +35,6 @@ async def full_flow_endpoint(req: FullFlowRequest, clean: bool = Query(True, des
     clip_paths = clip_moments(str(video_path), moments_data.get('viral_moments', []))
     logging.info(f"Clipping completed, generated {len(clip_paths)} clips")
 
-    # Step 5: Cleanup downloaded files
     if clean:
         logging.info("Step 5: Cleaning up temporary files")
         cleanup(include_clips=False)

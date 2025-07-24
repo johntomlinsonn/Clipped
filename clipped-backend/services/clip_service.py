@@ -19,8 +19,7 @@ def clip_moments(video_path: str, moments: list[dict]) -> list[str]:
     clips_dir = settings.storage_dir / 'clips'
     clips_dir.mkdir(parents=True, exist_ok=True)
 
-    # Load full video
-    video = VideoFileClip(str(video_path))
+    # We'll load the full video inside the loop per clip to avoid audio reader exhaustion
 
     # Process each moment, collect clip paths
     clip_paths: list[str] = []
@@ -33,12 +32,20 @@ def clip_moments(video_path: str, moments: list[dict]) -> list[str]:
         clip_name = f"clip_{idx}_{int(start)}_{int(end)}_{safe_desc}.mp4"
         clip_path = clips_dir / clip_name
 
-        # Extract subclip and write without subtitles
+        # Load the video fresh for each clip
+        fullvid = VideoFileClip(str(video_path))
         try:
-            subclip = video.subclip(start, end)
+            subclip = fullvid.subclip(start, end)
         except AttributeError:
-            subclip = video.subclipped(start, end)
-        subclip.write_videofile(str(clip_path), codec='libx264', audio_codec='aac', fps=video.fps)
+            subclip = fullvid.subclipped(start, end)
+        # Write clip including audio
+        subclip.write_videofile(str(clip_path), codec='libx264', audio_codec='aac', fps=fullvid.fps)
+        # Close resources
+        try:
+            subclip.close()
+            fullvid.close()
+        except Exception as e:
+            logging.warning(f"Error closing clip resources: {e}")
         logging.info(f"Saved clip {idx} to {clip_path}")
         clip_paths.append(str(clip_path))
     logging.info("Completed all clipping tasks")

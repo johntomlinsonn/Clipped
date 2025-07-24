@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from schemas.full_flow import FullFlowRequest, FullFlowResponse
 from services.download_service import download as download_video
 from services.transcribe_service import create_transcript
@@ -11,7 +11,7 @@ import logging
 router = APIRouter()
 
 @router.post("/", response_model=FullFlowResponse)
-async def full_flow_endpoint(req: FullFlowRequest):
+async def full_flow_endpoint(req: FullFlowRequest, clean: bool = Query(True, description="Remove temporary files after processing")):
     logging.info(f"Full flow job started for URL: {req.url}")
     # Step 1: Download video
     logging.info("Step 1: Downloading video")
@@ -27,19 +27,19 @@ async def full_flow_endpoint(req: FullFlowRequest):
 
     # Step 3: Analyze transcript
     logging.info("Step 3: Analyzing transcript")
-    json_path = analyze_transcript(transcript_path)
-    logging.info(f"Analysis results saved to {json_path}")
+    moments_data = analyze_transcript(transcript_path)
 
     # Step 4: Clip based on analysis
     logging.info("Step 4: Clipping moments")
-    clip_moments(str(video_path), str(json_path))
-    logging.info("Clipping completed")
-    clips_dir = settings.storage_dir / 'clips'
-    logging.info(f"Retrieving clips from {clips_dir}")
-    clip_paths = sorted(str(p) for p in clips_dir.glob('*.mp4'))
+    # Pass moments list directly to clip_service
+    clip_paths = clip_moments(str(video_path), moments_data.get('viral_moments', []))
+    logging.info(f"Clipping completed, generated {len(clip_paths)} clips")
 
-    #Step 5: Cleanup downloaded files
-    logging.info("Step 5: Cleaning up temporary files")
-    cleanup(include_clips=False)
+    # Step 5: Cleanup downloaded files
+    if clean:
+        logging.info("Step 5: Cleaning up temporary files")
+        cleanup(include_clips=False)
+    else:
+        logging.info("Skipping cleanup of temporary files")
 
     return FullFlowResponse(clip_paths=clip_paths)

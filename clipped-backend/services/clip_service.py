@@ -7,16 +7,13 @@ from config import settings
 import logging
 
 
-def clip_moments(video_path, json_path):
-    logging.info(f"Starting clip process for video {video_path} using moments file {json_path}")
-    """Create video subclips based on moments JSON, with subtitles."""
-    # Load moments
-    data = json.loads(Path(json_path).read_text(encoding='utf-8'))
-    moments = data.get('viral_moments', [])
-    logging.info(f"Found {len(moments)} viral moments to clip")
+def clip_moments(video_path: str, moments: list[dict]) -> list[str]:
+    logging.info(f"Starting clip process for video {video_path} with {len(moments)} moments")
+    """Create video subclips based on moments list."""
+    # Return early if no moments
     if not moments:
-        logging.info("No moments found; skipping clipping")
-        return
+        logging.info("No moments provided; skipping clipping")
+        return []
 
     # Prepare output directory
     clips_dir = settings.storage_dir / 'clips'
@@ -25,7 +22,8 @@ def clip_moments(video_path, json_path):
     # Load full video
     video = VideoFileClip(str(video_path))
 
-    # Process each moment
+    # Process each moment, collect clip paths
+    clip_paths: list[str] = []
     for idx, moment in enumerate(moments, start=1):
         start = parse_time(moment['time_start'])
         end = parse_time(moment['time_end'])
@@ -42,13 +40,31 @@ def clip_moments(video_path, json_path):
             subclip = video.subclipped(start, end)
         subclip.write_videofile(str(clip_path), codec='libx264', audio_codec='aac', fps=video.fps)
         logging.info(f"Saved clip {idx} to {clip_path}")
+        clip_paths.append(str(clip_path))
     logging.info("Completed all clipping tasks")
+    return clip_paths
 
 def parse_time(ts):
-    parts = ts.strip().split(':')
-    if len(parts) == 2:
+    """
+    Parse a timestamp string into seconds.
+    Supports formats:
+      - SS[.fff]
+      - MM:SS[.fff]
+      - HH:MM:SS[.fff]
+    """
+    s = ts.strip()
+    parts = s.split(':')
+    if len(parts) == 1:
+        # seconds only
+        try:
+            return float(s)
+        except ValueError:
+            raise ValueError(f"Invalid time format: {ts}")
+    elif len(parts) == 2:
+        # MM:SS
         return int(parts[0]) * 60 + float(parts[1])
     elif len(parts) == 3:
+        # HH:MM:SS
         return int(parts[0]) * 3600 + int(parts[1]) * 60 + float(parts[2])
     else:
         raise ValueError(f"Invalid time format: {ts}")

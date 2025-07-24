@@ -30,6 +30,7 @@ SYSTEM_PROMPT = r"""
     "✅ Prioritize clips where one or more Jokers are clearly the focus of the joke, being punished, embarrassed, or reacting hilariously.",
     "✅ Use ~2 seconds of padding before and after when possible to allow context or enhance pacing.",
     "✅ Do NOT hallucinate or guess — only use what’s directly visible in the transcript.",
+    "✅ ensure all moments are within the clear start and end times of the original video.",
     "❌ Do NOT cut mid-scene, mid-joke, or in a way that removes the payoff.",
     "❌ Do NOT extract scenes that are purely filler, setup-only, or dialogue without visual payoff unless it builds to an emotional or comedic hit.",
     "❌ Do NOT output moments under 15 seconds."
@@ -140,10 +141,7 @@ def analyze_transcript(transcript_path):
             # Skip invalid chunks
             continue
 
-    # Attach subtitles to each moment and save to moments directory
-    out_dir = ROOT_DIR / 'moments'
-    out_dir.mkdir(exist_ok=True)
-    # enrich with subtitles (include time for each line)
+    # Enrich moments with subtitles
     for moment in all_moments:
         start = parse_time(moment.get('time_start', '0:00'))
         end = parse_time(moment.get('time_end',   '0:00'))
@@ -152,7 +150,5 @@ def analyze_transcript(transcript_path):
             if start <= t <= end:
                 subs.append({'time': t, 'text': text})
         moment['subtitles'] = subs
-    output_file = out_dir / f"{Path(transcript_path).stem}_moments.json"
-    with open(output_file, 'w', encoding='utf-8') as f:
-        json.dump({'viral_moments': all_moments}, f, indent=2)
-    return output_file
+    # Return moments data as dict
+    return {'viral_moments': all_moments}

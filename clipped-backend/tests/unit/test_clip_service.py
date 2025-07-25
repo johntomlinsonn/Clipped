@@ -1,22 +1,7 @@
 import pytest
 from pathlib import Path
 import services.clip_service as cs
-
-class DummySubclip:
-    def __init__(self, fps):
-        self.fps = fps
-    def write_videofile(self, path, codec, audio_codec, fps):
-        Path(path).write_bytes(b'video')
-    def close(self):
-        pass
-
-class DummyVideo:
-    def __init__(self, path):
-        self.fps = 24
-    def subclip(self, start, end):
-        return DummySubclip(self.fps)
-    def close(self):
-        pass
+from tests.utils import DummySubclip, DummyVideo
 
 
 def test_clip_moments_empty():

@@ -1,21 +1,7 @@
 import pytest
 from pathlib import Path
 import services.download_service as ds
-
-class DummyYDL:
-    def __init__(self, opts):
-        self.opts = opts
-    def __enter__(self):
-        return self
-    def __exit__(self, *args):
-        return False
-    def extract_info(self, url, download=False):
-        return {'title': 'testvideo', 'ext': 'mp4'}
-    def download(self, urls):
-        # simulate creation of downloaded file
-        outtmpl = self.opts['outtmpl']
-        filename = outtmpl.replace('%(title)s', 'testvideo').replace('%(ext)s', 'mp4')
-        Path(filename).write_bytes(b'fake content')
+from tests.utils import DummyYDL
 
 def test_download_success(tmp_path, monkeypatch):
     # Prepare a temporary downloads directory
@@ -26,8 +12,8 @@ def test_download_success(tmp_path, monkeypatch):
     monkeypatch.setattr(ds.yt_dlp, 'YoutubeDL', DummyYDL)
     url = 'http://example.com/video'
     video_path = ds.download(url)
-    assert video_path == tmp_downloads / 'testvideo.mp4'
-    assert (tmp_downloads / 'testvideo.mp4').exists()
+    assert video_path == tmp_downloads / 'video.mp4'
+    assert (tmp_downloads / 'video.mp4').exists()
 
 def test_download_no_file(tmp_path, monkeypatch):
     # Prepare a temporary downloads directory

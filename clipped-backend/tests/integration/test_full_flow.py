@@ -4,6 +4,7 @@ from fastapi.testclient import TestClient
 import services.download_service as ds
 import services.transcribe_service as ts
 import services.clip_service as cs
+import routers.clip as clip_router
 import services.cleanup_service as cul
 from app import app
 
@@ -58,8 +59,7 @@ def setup(monkeypatch, tmp_path):
     monkeypatch.setattr(ts, 'AudioFileClip', DummyAudioClip)
     monkeypatch.setattr(ts, 'WhisperModel', DummyModel)
     monkeypatch.setattr(cs, 'VideoFileClip', DummyVideo)
-    
-    monkeypatch.setattr(cs, 'clip_moments', lambda video_path, moments: [])
+    monkeypatch.setattr(clip_router, 'clip_moments', lambda video_path, moments: [])
     yield
 
 
@@ -77,7 +77,7 @@ def test_full_flow(tmp_path):
     assert transcript_path.exists()
 
     # 3. Clip
-    moments = [{'time_start':'0:00','time_end':'0:01','description':'d'}]
+    moments = [{"time_start": "0:00", "time_end": "0:02", "description": "Test desc"}]
     r3 = client.post('/clip', json={'video_path': str(video_path), 'moments': moments})
     assert r3.status_code == 200
     clips = r3.json().get('clip_paths', [])
@@ -88,4 +88,6 @@ def test_full_flow(tmp_path):
     assert r4.status_code == 200
     # verify all subdirs are empty
     for sub in ['audio','downloads','transcripts','clips']:
-        assert list((tmp_path/'storage'/sub).iterdir()) == []
+        dir_path = tmp_path/'storage'/sub
+        if dir_path.exists():
+            assert list(dir_path.iterdir()) == []

@@ -8,7 +8,7 @@ from pathlib import Path
 def docker_compose():
     # project root is three levels up from this file: tests/integration -> clipped-backend -> opus
     root = Path(__file__).resolve().parent
-    while root != root.parent:  # Traverse upwards until the root directory
+    while root != root.parent:  
         if (root / "docker-compose.yml").exists():
             break
         root = root.parent
@@ -25,6 +25,8 @@ def docker_compose():
 
 def test_docs_endpoint_available():
     url = "http://localhost:8000/docs"
+    RETRY_COUNT = 5
+    SLEEP_DURATION = 1
     for _ in range(RETRY_COUNT):
         try:
             r = requests.get(url)

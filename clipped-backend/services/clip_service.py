@@ -24,9 +24,15 @@ def clip_moments(video_path: str, moments: list[dict]) -> list[str]:
     # Process each moment, collect clip paths
     clip_paths: list[str] = []
     for idx, moment in enumerate(moments, start=1):
-        start = parse_time(moment['time_start'])
-        end = parse_time(moment['time_end'])
-        desc = moment.get('description', '')
+        # Support both dicts and Pydantic model instances
+        time_start = getattr(moment, 'time_start', None) or moment.get('time_start')
+        time_end = getattr(moment, 'time_end', None) or moment.get('time_end')
+        desc = getattr(moment, 'description', None)
+        if desc is None:
+            desc = moment.get('description', '')
+        # parse start/end
+        start = parse_time(time_start)
+        end = parse_time(time_end)
         logging.info(f"Clipping moment {idx}: start={start}, end={end}, description='{desc}'")
         safe_desc = "".join(c for c in desc if c.isalnum() or c in (' ', '_')).rstrip().replace(' ', '_')[:50]
         clip_name = f"clip_{idx}_{int(start)}_{int(end)}_{safe_desc}.mp4"

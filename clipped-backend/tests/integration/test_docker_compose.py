@@ -7,7 +7,13 @@ from pathlib import Path
 @pytest.fixture(scope="session", autouse=True)
 def docker_compose():
     # project root is three levels up from this file: tests/integration -> clipped-backend -> opus
-    root = Path(__file__).parents[3]
+    root = Path(__file__).resolve().parent
+    while root != root.parent:  # Traverse upwards until the root directory
+        if (root / "docker-compose.yml").exists():
+            break
+        root = root.parent
+    else:
+        raise FileNotFoundError("Could not find 'docker-compose.yml' in any parent directory.")
     # Start services
     subprocess.run(["docker-compose", "up", "-d"], cwd=root, check=True)
     # Wait a bit for startup

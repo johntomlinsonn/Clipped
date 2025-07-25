@@ -8,6 +8,8 @@ import routers.clip as clip_router
 import services.cleanup_service as cul
 from app import app
 from tests.utils import DummyYDL, DummyAudioClip, DummySegment, DummyModel, DummySubclip, DummyVideo
+import config
+import importlib
 
 client = TestClient(app)
 
@@ -20,14 +22,20 @@ def setup(monkeypatch, tmp_path):
     # ensure download dir exists for DummyYDL
     (storage / 'downloads').mkdir(parents=True, exist_ok=True)
     # patch storage dirs
+
+    monkeypatch.setattr(config.settings, 'storage_dir', storage)
     monkeypatch.setattr(cul.settings, 'storage_dir', storage)
     monkeypatch.setattr(cs.settings, 'storage_dir', storage)
-    monkeypatch.setattr(ts.settings, 'storage_dir', storage)
+
+    monkeypatch.setattr('services.transcribe_service.WhisperModel', DummyModel)
+    importlib.reload(ts)
     monkeypatch.setattr(ds, 'DOWNLOADS_DIR', storage / 'downloads')
     # patch external dependencies
     monkeypatch.setattr(ds.yt_dlp, 'YoutubeDL', DummyYDL)
     monkeypatch.setattr(ts, 'AudioFileClip', DummyAudioClip)
-    monkeypatch.setattr(ts, 'WhisperModel', DummyModel)
+    # ensure preload event is set and model is DummyModel
+    ts._model = DummyModel()
+    ts._model_loaded_event.set()
     monkeypatch.setattr(cs, 'VideoFileClip', DummyVideo)
     monkeypatch.setattr(clip_router, 'clip_moments', lambda video_path, moments: [])
     yield

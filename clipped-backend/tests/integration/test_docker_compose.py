@@ -15,12 +15,12 @@ def docker_compose():
     else:
         raise FileNotFoundError("Could not find 'docker-compose.yml' in any parent directory.")
     # Start services
-    subprocess.run(["docker-compose", "up", "-d"], cwd=root, check=True)
+    subprocess.run(["docker", "compose", "up", "-d"], cwd=root, check=True)
     # Wait a bit for startup
     time.sleep(5)
     yield
     # Teardown
-    subprocess.run(["docker-compose", "down"], cwd=root, check=True)
+    subprocess.run(["docker", "compose", "down"], cwd=root, check=True)
 
 
 def test_docs_endpoint_available():

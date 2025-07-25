@@ -7,7 +7,7 @@ import services.analyze_service as asvc
 def test_parse_time_formats():
     assert asvc.parse_time("33.50") == 33.5
     assert asvc.parse_time("1:05") == 65.0
-    assert asvc.parse_time("0:01:30") == 3600 + 60 + 30 if False else 90.0  # hh:mm:ss fallback
+    assert asvc.parse_time("0:01:30") == 90.0  # hh:mm:ss format parsed correctly
     with pytest.raises(ValueError):
         asvc.parse_time("invalid")
 

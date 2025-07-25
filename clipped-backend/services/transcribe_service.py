@@ -1,10 +1,31 @@
 import os
 from pathlib import Path
 import logging
-
 from moviepy.audio.io.AudioFileClip import AudioFileClip
 from faster_whisper import WhisperModel
 from config import settings
+
+import threading
+
+# Preload Whisper model in background to overlap with video download
+_model = None
+_model_loaded_event = threading.Event()
+
+
+def _load_model():
+    global _model
+    logging.info("Loading Whisper model distil-large-v3 in background")
+    _model = WhisperModel(
+        "distil-large-v3",
+        device="cpu",
+        compute_type="int8",
+        cpu_threads=4,
+    )
+    _model_loaded_event.set()
+
+
+# Kick off background loading of the model
+threading.Thread(target=_load_model, daemon=True).start()
 
 
 def create_transcript(video_path: str, url: str) -> Path:
@@ -21,8 +42,8 @@ def create_transcript(video_path: str, url: str) -> Path:
     video_path = Path(video_path)
     logging.info(f"Starting transcription for video {video_path.name} from URL {url}")
     # Prepare directories
-    audio_dir = settings.storage_dir / 'audio'
-    transcript_dir = settings.storage_dir / 'transcripts'
+    audio_dir = settings.storage_dir / "audio"
+    transcript_dir = settings.storage_dir / "transcripts"
     audio_dir.mkdir(parents=True, exist_ok=True)
     transcript_dir.mkdir(parents=True, exist_ok=True)
 
@@ -34,13 +55,9 @@ def create_transcript(video_path: str, url: str) -> Path:
     logging.info("Audio extraction completed")
 
     # Transcribe using Whisper (faster-whisper)
-    logging.info("Loading Whisper model distil-large-v3")
-    model = WhisperModel(
-        "distil-large-v3",
-        device="cpu",
-        compute_type="int8",  
-        cpu_threads=4          
-    )
+    logging.info("Waiting for Whisper model to load")
+    _model_loaded_event.wait()
+    model = _model
     # returns (segments, info)
     segments, _ = model.transcribe(str(audio_path))
     logging.info(f"Transcription produced")
@@ -48,14 +65,14 @@ def create_transcript(video_path: str, url: str) -> Path:
     # Prepare transcript output
     transcript_path = transcript_dir / f"{video_path.stem}_transcript.txt"
     logging.info(f"Writing transcript to {transcript_path}")
-    with open(transcript_path, 'w', encoding='utf-8') as f:
+    with open(transcript_path, "w", encoding="utf-8") as f:
         f.write(f"Video: {video_path.name}\n")
         f.write(f"URL: {url}\n\n")
         f.write("{\n")
         # Write each segment's start time and text
         for segment in segments:
-            start = getattr(segment, 'start', 0.0)
-            text = getattr(segment, 'text', '').strip().replace('"', "'")
+            start = getattr(segment, "start", 0.0)
+            text = getattr(segment, "text", "").strip().replace('"', "'")
             f.write(f'  "{start:.2f}": "{text}",\n')
         f.write("}\n")
     logging.info("Transcript creation completed")

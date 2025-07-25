@@ -6,6 +6,10 @@ from faster_whisper import WhisperModel
 from config import settings
 
 import threading
+import concurrent.futures
+import subprocess
+from moviepy.audio.io.AudioFileClip import AudioFileClip
+from pathlib import Path
 
 # Preload Whisper model in background to overlap with video download
 _model = None
@@ -26,6 +30,85 @@ def _load_model():
 
 # Kick off background loading of the model
 threading.Thread(target=_load_model, daemon=True).start()
+ 
+def _parallel_transcribe(audio_path: Path, model: WhisperModel, audio_dir: Path, chunk_duration: float = 60.0, max_workers: int = 4):
+    """
+    Split audio into chunks and transcribe each chunk in parallel.
+    Returns a list of segments with adjusted start times.
+    """
+    # Determine total duration
+    clip = AudioFileClip(str(audio_path))
+    total_duration = clip.duration
+    clip.close()
+
+    # Prepare chunk parameters
+    chunks = []
+    start = 0.0
+    idx = 1
+    while start < total_duration:
+        end = min(start + chunk_duration, total_duration)
+        chunk_path = audio_dir / f"{audio_path.stem}_chunk_{idx}.mp3"
+        chunks.append((idx, start, end, chunk_path))
+        start = end
+        idx += 1
+
+    # Worker to transcribe a single chunk
+    def _transcribe_chunk(idx, start_offset, end, chunk_path):
+        # Extract chunk using ffmpeg
+        cmd = [
+            "ffmpeg", "-y", "-i", str(audio_path),
+            "-ss", str(start_offset), "-to", str(end),
+            str(chunk_path)
+        ]
+        subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        # Transcribe chunk
+        segs, _ = model.transcribe(str(chunk_path))
+        # Adjust segment start times
+        for seg in segs:
+            setattr(seg, "start", getattr(seg, "start", 0.0) + start_offset)
+        # Clean up chunk file
+        try:
+            chunk_path.unlink()
+        except Exception:
+            pass
+        return segs
+
+    # Execute in parallel
+    segments = []
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = [
+            executor.submit(_transcribe_chunk, idx, start, end, path)
+            for idx, start, end, path in chunks
+        ]
+        for future in concurrent.futures.as_completed(futures):
+            try:
+                segments.extend(future.result())
+            except Exception as e:
+                logging.warning(f"Chunk transcription failed: {e}")
+    # Sort segments by start time
+    segments.sort(key=lambda s: getattr(s, "start", 0.0))
+    return segments
+   
+def _write_transcript(transcript_path: Path, video_name: str, url: str, segments: list) -> None:
+    """
+    Write segments and metadata to a transcript file.
+    This version builds the output in memory before writing, for faster I/O.
+    """
+    lines = [
+        f"Video: {video_name}\n",
+        f"URL: {url}\n\n",
+        "{\n"
+    ]
+    # Append segments lines
+    for segment in segments:
+        start = getattr(segment, 'start', 0.0)
+        # replace any double-quotes in text with single-quotes
+        text = getattr(segment, 'text', '').strip().replace('"', "'")
+        lines.append(f'  "{start:.2f}": "{text}",\n')
+    lines.append("}\n")
+    # Write all at once
+    with open(transcript_path, "w", encoding="utf-8") as f:
+        f.writelines(lines)
 
 
 def create_transcript(video_path: str, url: str) -> Path:
@@ -58,23 +141,16 @@ def create_transcript(video_path: str, url: str) -> Path:
     logging.info("Waiting for Whisper model to load")
     _model_loaded_event.wait()
     model = _model
-    # returns (segments, info)
-    segments, _ = model.transcribe(str(audio_path))
-    logging.info(f"Transcription produced")
+    # Transcribe in parallel with Whisper model
+    logging.info("Starting parallel transcription")
+    segments = _parallel_transcribe(audio_path, model, audio_dir)
+    logging.info(f"Parallel transcription completed, {len(segments)} segments")
 
     # Prepare transcript output
     transcript_path = transcript_dir / f"{video_path.stem}_transcript.txt"
     logging.info(f"Writing transcript to {transcript_path}")
-    with open(transcript_path, "w", encoding="utf-8") as f:
-        f.write(f"Video: {video_path.name}\n")
-        f.write(f"URL: {url}\n\n")
-        f.write("{\n")
-        # Write each segment's start time and text
-        for segment in segments:
-            start = getattr(segment, "start", 0.0)
-            text = getattr(segment, "text", "").strip().replace('"', "'")
-            f.write(f'  "{start:.2f}": "{text}",\n')
-        f.write("}\n")
+    # Write transcript file
+    _write_transcript(transcript_path, video_path.name, url, segments)
     logging.info("Transcript creation completed")
 
     return transcript_path

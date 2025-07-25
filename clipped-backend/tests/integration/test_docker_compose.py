@@ -19,14 +19,14 @@ def docker_compose():
 
 def test_docs_endpoint_available():
     url = "http://localhost:8000/docs"
-    for _ in range(20):
+    for _ in range(RETRY_COUNT):
         try:
             r = requests.get(url)
             if r.status_code == 200:
                 break
         except requests.exceptions.RequestException:
             pass
-        time.sleep(1)
+        time.sleep(SLEEP_DURATION)
     else:
         pytest.skip("Service did not start in time")
     assert "<title>" in r.text

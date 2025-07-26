@@ -18,18 +18,25 @@ _model_loaded_event = threading.Event()
 
 def _load_model():
     global _model
-    logging.info("Loading Whisper model distil-large-v3 in background")
-    _model = WhisperModel(
-        "distil-large-v3",
-        device="cpu",
-        compute_type="int8",
-        cpu_threads=4,
-    )
-    _model_loaded_event.set()
+    try:
+        logging.info("Loading Whisper model medium.en in background")
+        _model = WhisperModel(
+            "medium.en",
+            device="cpu",    
+            compute_type="int8",        
+            cpu_threads=4,
+        )
+        logging.info("Whisper model loaded successfully")
+        _model_loaded_event.set()
+    except Exception as e:
+        logging.error(f"Failed to load Whisper model: {e}")
+        _model_loaded_event.set()  # Set event even on failure to prevent infinite waiting
 
 
 # Kick off background loading of the model
+logging.info("Starting Whisper model loading thread")
 threading.Thread(target=_load_model, daemon=True).start()
+logging.info("Whisper model loading initiated in background thread")
  
 def _parallel_transcribe(audio_path: Path, model: WhisperModel, audio_dir: Path, chunk_duration: float = 60.0, max_workers: int = 4):
     """
@@ -132,19 +139,27 @@ def create_transcript(video_path: str, url: str) -> Path:
 
     # Extract audio to mp3
     audio_path = audio_dir / f"{video_path.stem}.mp3"
-    logging.info(f"Extracting audio to {audio_path}")
-    clip = AudioFileClip(str(video_path))
-    clip.write_audiofile(str(audio_path))
+    logging.info(f"Extracting audio to {audio_path} via ffmpeg")
+    cmd = [
+        "ffmpeg", "-y", "-i", str(video_path),
+        "-vn", "-acodec", "mp3", str(audio_path)
+    ]
+    subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     logging.info("Audio extraction completed")
 
     # Transcribe using Whisper (faster-whisper)
     logging.info("Waiting for Whisper model to load")
     _model_loaded_event.wait()
+    
+    if _model is None:
+        raise RuntimeError("Whisper model failed to load")
+        
     model = _model
-    # Transcribe in parallel with Whisper model
-    logging.info("Starting parallel transcription")
-    segments = _parallel_transcribe(audio_path, model, audio_dir)
-    logging.info(f"Parallel transcription completed, {len(segments)} segments")
+    # Transcribe audio serially
+    logging.info("Transcribing audio using serial transcription")
+    raw_segments, _ = model.transcribe(str(audio_path))
+    segments = list(raw_segments)
+    logging.info(f"Serial transcription produced {len(segments)} segments")
 
     # Prepare transcript output
     transcript_path = transcript_dir / f"{video_path.stem}_transcript.txt"

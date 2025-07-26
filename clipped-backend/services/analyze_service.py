@@ -4,71 +4,16 @@ from pathlib import Path
 from dotenv import load_dotenv
 from cerebras.cloud.sdk import Cerebras
 
-# Load environment variables
-ROOT_DIR = Path(__file__).parent.parent
-load_dotenv(ROOT_DIR / '.env')
+from config import settings
+# Environment loaded via config; discard manual load
 
-# System prompt for viral moment extraction
-SYSTEM_PROMPT = r"""
-{
-  "role": "Expert Comedic Video Analyst specializing in reality TV and improv-based humor. Over a decade of experience dissecting viral-worthy clips from Impractical Jokers-style content.",
-  "goal": "Analyze mashup-style YouTube videos containing segments from Impractical Jokers. Your task is to extract full, standalone comedic segments that are strong enough to go viral on platforms like TikTok or YouTube Shorts. Only make cuts at natural segment boundaries where a full moment exists. Never cut mid-segment. Include cuts only when absolutely necessary and only if the resulting moment is clearly viral-worthy.",
-  "context_dump": "Input is a transcript from a YouTube mashup video made up of several Impractical Jokers moments. Each segment has already been trimmed by an editor, but may still include multiple moments. Your job is to refine this into stronger short-form moments by further cutting only at clear scene transitions — **never mid-joke, prank, or narrative**.",
-  "expected_output_format": {
-    "viral_moments": [
-      {
-        "time_start": "m:ss",
-        "time_end": "m:ss",
-        "description": "Why this segment is funny and would work well on TikTok or Reels. Include details like payoff, escalation, awkwardness, character reactions, or ironic setup."
-      }
-    ]
-  },
-  "rules": [
-    "✅ Each clip must be **at least 15 seconds long**, ideally 15–80 seconds.",
-    "✅ Only create a new cut if there is a **natural break** — such as the end of a prank, the conclusion of a joke, or a hard transition in tone or setting.",
-    "✅ Each extracted moment must feel **complete** — with a setup, escalation, and payoff (or full awkward beat).",
-    "✅ Prioritize clips where one or more Jokers are clearly the focus of the joke, being punished, embarrassed, or reacting hilariously.",
-    "✅ Use ~2 seconds of padding before and after when possible to allow context or enhance pacing.",
-    "✅ Do NOT hallucinate or guess — only use what’s directly visible in the transcript.",
-    "✅ ensure all moments are within the clear start and end times of the original video.",
-    "❌ Do NOT cut mid-scene, mid-joke, or in a way that removes the payoff.",
-    "❌ Do NOT extract scenes that are purely filler, setup-only, or dialogue without visual payoff unless it builds to an emotional or comedic hit.",
-    "❌ Do NOT output moments under 15 seconds."
-  ],
-  "best_practices_notes": [
-    "🎯 Treat each mashup video like a buffet — select only the most viral-worthy **full bites**. If a moment feels like a half-bite (cutoff or no payoff), discard or extend it.",
-    "🎬 Strong segments often include: Joker getting caught, being awkward in public, being forced to say embarrassing lines, failing a challenge, or getting punished.",
-    "🧠 Use Chain-of-Thought (CoT): (1) Parse full transcript; (2) Look for clear start & end of a scene; (3) Check if clip is funny on its own; (4) Add buffer if needed; (5) Format as JSON.",
-    "📱 Ask yourself: Would this moment stop someone’s scroll on TikTok or Reels and get them to laugh or watch to the end?",
-    "✂️ Fewer cuts are better — only trim when the viral value of the clip justifies it."
-  ],
-  "few_shot_examples": [
-    {
-      "input_prompt": "Mashup video of 6 Impractical Jokers pranks involving punishments, mall dares, and weird interviews. Identify viral clips.",
-      "expected_output": {
-        "viral_moments": [
-          {
-            "time_start": "1:14",
-            "time_end": "1:42",
-            "description": "Sal is forced to tell a stranger they smell like soup. The awkwardness, the stranger’s confused reaction, and Sal breaking into laughter make it a perfect self-contained joke with setup and payoff."
-          },
-          {
-            "time_start": "3:05",
-            "time_end": "3:50",
-            "description": "Joe pretends to be a mall security guard and yells at an old man for 'too much swagger.' The absurd premise and the old man's deadpan reaction make this a viral moment."
-          },
-          {
-            "time_start": "5:20",
-            "time_end": "5:58",
-            "description": "Q fails at a grocery store dare and runs away mid-sentence. His retreat and the Joker commentary make this moment chaotic and viral-worthy."
-          }
-        ]
-      }
-    }
-  ],
-  "optimized_prompt": "System: You are a comedic segment extractor working with mashup Impractical Jokers videos. Your task is to find only full segments (15–80 seconds) that stand on their own as short-form content. Only cut between full segments, and only if it makes for a better viral moment. Never interrupt a setup or payoff. Use chain-of-thought: (1) read transcript, (2) identify start of funny moment, (3) verify arc is complete, (4) format clean JSON output."
-}
-"""
+# Load system prompt from external file
+def load_system_prompt() -> str:
+    """Load system prompt from external file"""
+    prompt_path = Path(__file__).parent.parent / "system-prompt.txt"
+    return prompt_path.read_text(encoding='utf-8')
+
+SYSTEM_PROMPT = load_system_prompt()
 
 def parse_time(ts: str) -> float:
     ts_str = ts.strip()
@@ -105,12 +50,31 @@ def chunk_script(text, max_chars=8000):
     return [text[i:i+max_chars] for i in range(0, len(text), max_chars)]
 
 
+def filter_moments_within_bounds(moments: list[dict], video_duration: float) -> list[dict]:
+    """
+    Ensure all viral moments are within the bounds of the video duration.
+    Delete any moment not within bounds in place.
+    """
+    # Iterate backwards to remove invalid moments
+    for i in range(len(moments) - 1, -1, -1):
+        moment = moments[i]
+        try:
+            start = parse_time(moment.get('time_start', '0:00'))
+            end = parse_time(moment.get('time_end', '0:00'))
+        except ValueError:
+            del moments[i]
+            continue
+        if not (0 <= start < end <= video_duration):
+            del moments[i]
+    return moments
+
+
 def analyze_transcript(transcript_path):
     """Analyze a transcript file and output a JSON of viral moments."""
     transcript_path = Path(transcript_path)
     text = transcript_path.read_text(encoding='utf-8')
     
-    client = Cerebras(api_key=os.getenv('CEREBRAS_API_KEY'))
+    client = Cerebras(api_key=settings.cerebras_api_key)
     # parse full transcript for subtitles lookup
     raw_transcript = Path(transcript_path)
     transcript_lines = parse_transcript_lines(raw_transcript)
@@ -150,5 +114,8 @@ def analyze_transcript(transcript_path):
             if start <= t <= end:
                 subs.append({'time': t, 'text': text})
         moment['subtitles'] = subs
+    # Filter moments within the actual video duration
+    video_duration = sum([parse_time(t[1]) - parse_time(t[0]) for t in zip(transcript_lines[:-1], transcript_lines[1:])])
+    #all_moments = filter_moments_within_bounds(all_moments, video_duration)
     # Return moments data as dict
     return {'viral_moments': all_moments}

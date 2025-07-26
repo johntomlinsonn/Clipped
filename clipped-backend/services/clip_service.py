@@ -3,13 +3,45 @@ from pathlib import Path
 import math
 import subprocess
 from moviepy.video.io.VideoFileClip import VideoFileClip
+from moviepy.video.compositing.CompositeVideoClip import CompositeVideoClip
 from config import settings
 import logging
 
 
+def create_9_16_with_blur(clip):
+    """Create a 9:16 aspect ratio video with the original in center and blurred background"""
+    # Get original dimensions
+    w, h = clip.size
+    
+    # Calculate 9:16 dimensions based on original width
+    target_width = w
+    target_height = int(w * 16 / 9)
+    
+    # If the calculated height is smaller than original, use original height and adjust width
+    if target_height < h:
+        target_height = h
+        target_width = int(h * 9 / 16)
+    
+    # Create background - just a scaled version for now (blur can be added later)
+    background = clip.resized((target_width, target_height))
+    
+    # Calculate scaling for the main clip to fit nicely in the center
+    # We want to maintain aspect ratio and fit within reasonable bounds
+    scale_factor = min(target_width * 0.8 / w, target_height * 0.6 / h)
+    main_clip = clip.resized(scale_factor)
+    
+    # Center the main clip
+    main_clip = main_clip.with_position('center')
+    
+    # Composite the clips
+    final_clip = CompositeVideoClip([background, main_clip], size=(target_width, target_height))
+    
+    return final_clip
+
+
 def clip_moments(video_path: str, moments: list[dict]) -> list[str]:
     logging.info(f"Starting clip process for video {video_path} with {len(moments)} moments")
-    """Create video subclips based on moments list."""
+    """Create video subclips based on moments list using FFmpeg for speed."""
     # Return early if no moments
     if not moments:
         logging.info("No moments provided; skipping clipping")
@@ -18,8 +50,6 @@ def clip_moments(video_path: str, moments: list[dict]) -> list[str]:
     # Prepare output directory
     clips_dir = settings.storage_dir / 'clips'
     clips_dir.mkdir(parents=True, exist_ok=True)
-
-    # We'll load the full video inside the loop per clip to avoid audio reader exhaustion
 
     # Process each moment, collect clip paths
     clip_paths: list[str] = []
@@ -32,24 +62,38 @@ def clip_moments(video_path: str, moments: list[dict]) -> list[str]:
         clip_name = f"clip_{idx}_{int(start)}_{int(end)}_{safe_desc}.mp4"
         clip_path = clips_dir / clip_name
 
-        # Load the video fresh for each clip
-        fullvid = VideoFileClip(str(video_path))
+        # Check if clip already exists
+        if clip_path.exists():
+            logging.info(f"Clip {idx} already exists at {clip_path}, skipping")
+            clip_paths.append(str(clip_path))
+            continue
+
+        # Use FFmpeg for fast clipping
         try:
-            subclip = fullvid.subclip(start, end)
-        except AttributeError:
-            subclip = fullvid.subclipped(start, end)
-        # Write clip including audio
-        subclip.write_videofile(str(clip_path), codec='libx264', audio_codec='aac', fps=fullvid.fps)
-        # Close resources
-        try:
-            subclip.close()
-            fullvid.close()
+            clip_with_ffmpeg(video_path, start, end, clip_path)
+            logging.info(f"Saved clip {idx} to {clip_path}")
+            clip_paths.append(str(clip_path))
         except Exception as e:
-            logging.warning(f"Error closing clip resources: {e}")
-        logging.info(f"Saved clip {idx} to {clip_path}")
-        clip_paths.append(str(clip_path))
+            logging.error(f"Failed to create clip {idx}: {e}")
+            continue
+            
     logging.info("Completed all clipping tasks")
     return clip_paths
+
+
+def clip_with_ffmpeg(video_path: str, start: float, end: float, output_path: Path) -> None:
+    """Use FFmpeg to extract a clip from video and convert to 9:16 aspect ratio with black bars"""
+    cmd = [
+        "ffmpeg", "-y", "-i", str(video_path),
+        "-ss", str(start), "-to", str(end),
+        "-vf", "scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2:black",
+        "-c:v", "libx264",  # Re-encode video with x264
+        "-c:a", "aac",      # Re-encode audio with AAC for compatibility
+        "-b:a", "128k",     # Set audio bitrate
+        "-ar", "44100",     # Set audio sample rate
+        str(output_path)
+    ]
+    subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 def parse_time(ts):
     """

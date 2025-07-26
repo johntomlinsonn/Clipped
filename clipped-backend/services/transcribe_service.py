@@ -137,6 +137,12 @@ def create_transcript(video_path: str, url: str) -> Path:
     audio_dir.mkdir(parents=True, exist_ok=True)
     transcript_dir.mkdir(parents=True, exist_ok=True)
 
+    # Check if transcript already exists
+    transcript_path = transcript_dir / f"{video_path.stem}_transcript.txt"
+    if transcript_path.exists():
+        logging.info(f"Transcript already exists at {transcript_path}, skipping transcription")
+        return transcript_path
+
     # Extract audio to mp3
     audio_path = audio_dir / f"{video_path.stem}.mp3"
     logging.info(f"Extracting audio to {audio_path} via ffmpeg")

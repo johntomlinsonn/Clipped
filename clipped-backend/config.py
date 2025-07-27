@@ -2,8 +2,12 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
 from pydantic import Field
 
+from pathlib import Path
+# Load local .env files: .env.local overrides default .env
+load_dotenv(dotenv_path=Path(__file__).parent / '.env.local', override=True)
 load_dotenv()
 
 class Settings(BaseSettings):
@@ -19,7 +23,11 @@ class Settings(BaseSettings):
     cerebras_api_key: str | None = None
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        # Load variables from .env.local then .env
+        env_file=[
+            str(Path(__file__).parent / '.env.local'),
+            str(Path(__file__).parent / '.env')
+        ],
         env_file_encoding="utf-8",
         extra="ignore",
     )

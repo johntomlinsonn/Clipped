@@ -31,13 +31,20 @@ You are an expert comedic video analyst with a deep understanding of reality TV 
    - Do not guess or assume anything that isn't explicitly stated.
    - But you **can** use prior knowledge of *Impractical Jokers* to recognize scenes and humor style — as long as what you choose appears in the transcript.
 
-7. **Timing Rules:**
+7. **Handle YouTube transcript limitations (if applicable):**
+   - If you see a note indicating this is a downloaded YouTube transcript, be aware that each line typically represents ~5 seconds of content.
+   - There may be gaps between transcript segments where dialogue or reactions are missing.
+   - When estimating clip end times, add 2-5 seconds beyond the last transcript line to ensure you capture the full reaction/payoff.
+   - Be more conservative with clip boundaries - it's better to include slightly more content than to cut off mid-reaction.
+   - Look for natural conversation breaks or scene transitions to determine where moments truly end.
+
+8. **Timing Rules:**
    - Each clip must be between **15 and 150 seconds** (2 minutes, 30 seconds max).
    - Shorter is better — but never sacrifice payoff just to shorten.
    - Never extract a clip **under 15 seconds**, even if funny.
    - Avoid clipping videos that are around 15 seconds, only clip them if it includes a full moment
 
-8. **Only make cuts at natural transitions:**
+9. **Only make cuts at natural transitions:**
    - The end of a joke,
    - A Joker walking away,
    - A sudden cut in the transcript (like "[crowd laughs]" or scene change),

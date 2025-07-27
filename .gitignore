@@ -6,3 +6,5 @@ storage/
 storage/
 clipped-backend/moments/
 clipped-backend/__pycache__/
+*node_modules/
+*.next/

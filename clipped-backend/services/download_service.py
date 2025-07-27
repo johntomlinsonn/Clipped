@@ -240,13 +240,13 @@ def download(url):
     if cached_video:
         # Check if we also have a cached transcript
         transcript_available = _check_cached_transcript(url)
-        return cached_video, transcript_available
+        return str(cached_video), transcript_available
     
     # Optimized yt-dlp options for speed
     ydl_opts = {
-        # Quality optimization: prefer 720p, mp4 format
+        # Quality optimization: prefer 1080p, mp4 format
         'format': (
-            'best[height<=720][ext=mp4]/best[height<=720][ext=webm]/'
+            'best[height<=1080][ext=mp4]/best[height<=1080][ext=webm]/'
             'best[ext=mp4]/best[ext=webm]/'
             'best[height<=1080]/best'
         ),
@@ -304,10 +304,10 @@ def download(url):
             # Cache the video for future use
             try:
                 cached_path = _cache_video(video_path, url)
-                return cached_path, transcript_available
+                return str(cached_path), transcript_available
             except Exception as cache_error:
                 logging.warning(f"Caching failed, returning original path: {cache_error}")
-                return video_path, transcript_available
+                return str(video_path), transcript_available
         else:
             logging.error("No video file found after download")
             return None, False

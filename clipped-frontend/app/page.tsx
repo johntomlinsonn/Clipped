@@ -60,9 +60,11 @@ export default function Component() {
               social media presence and reach millions.
             </p>
             <div className="flex justify-start">
-              <Button size="lg" className="bg-blue-600 hover:bg-blue-700 px-8 py-4 text-lg text-white">
-                Try it now
-              </Button>
+              <Link href="/upload">
+                <Button size="lg" className="bg-blue-600 hover:bg-blue-700 px-8 py-4 text-lg text-white">
+                  Try it now
+                </Button>
+              </Link>
             </div>
 
             <div className="flex flex-wrap gap-8 text-sm">

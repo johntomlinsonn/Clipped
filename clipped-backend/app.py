@@ -7,22 +7,35 @@ from routers.clip import router as clip_router
 from routers.cleanup import router as cleanup_router
 from routers.analyze import router as analyze_router
 from routers.full_flow import router as full_flow_router
+from routers.clips import router as clips_router
+
 
 import logging
 import coloredlogs
+from fastapi.middleware.cors import CORSMiddleware
 
 coloredlogs.install(level='INFO')
 
 app = FastAPI(title="Clipped API")
 register_exception_handlers(app)
 
+# Allow CORS for localhost
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://localhost:8000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"]
+)
+
 app.include_router(download_router, prefix="/download", tags=["download"])
 app.include_router(transcribe_router, prefix="/transcribe", tags=["transcribe"])
 app.include_router(clip_router, prefix="/clip", tags=["clip"])
+app.include_router(clips_router, prefix="/clips", tags=["clips"])
 app.include_router(cleanup_router, prefix="/cleanup", tags=["cleanup"])
 app.include_router(analyze_router, prefix="/analyze", tags=["analyze"])
 app.include_router(full_flow_router, prefix="/full_flow", tags=["full_flow"])
- 
+
 # Mount central storage for media files (downloads, clips, transcripts, etc.)
 from fastapi.staticfiles import StaticFiles
 app.mount(

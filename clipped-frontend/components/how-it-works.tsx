@@ -4,6 +4,7 @@ import { Youtube, ArrowRight, Sparkles, TrendingUp, Clock, Users, Zap, Share2, W
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import Image from "next/image"
+import Link from "next/link"
 import { motion } from "framer-motion" // Import motion from framer-motion
 
 export function HowItWorks() {
@@ -139,9 +140,11 @@ export function HowItWorks() {
               placeholder="Paste your YouTube video link here..."
               className="flex-1 p-3 text-lg border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
             />
-            <Button size="lg" className="bg-blue-600 hover:bg-blue-700 px-8 py-4 text-lg text-white">
-              Clip It!
-            </Button>
+            <Link href="/upload">
+              <Button size="lg" className="bg-blue-600 hover:bg-blue-700 px-8 py-4 text-lg text-white">
+                Clip It!
+              </Button>
+            </Link>
           </div>
         </div>
       </div>

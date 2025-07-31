@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Query
 from schemas.full_flow import FullFlowRequest, FullFlowResponse
 from services.download_service import download as download_video, get_transcript_path
 from services.transcribe_service import create_transcript
+from services.caption_service import generate_captions
 from services.analyze_service import analyze_transcript
 from services.clip_service import clip_moments
 from services.cleanup_service import cleanup
@@ -16,7 +17,11 @@ from pathlib import Path
 router = APIRouter()
 
 @router.post("/", response_model=FullFlowResponse)
-async def full_flow_endpoint(req: FullFlowRequest, clean: bool = Query(True, description="Remove temporary files after processing")):
+async def full_flow_endpoint(
+    req: FullFlowRequest,
+    clean: bool = Query(True, description="Remove temporary files after processing"),
+    captions: bool = Query(False, description="Generate a captioned video after clipping")
+):
     """
     Optimized async pipeline that runs processes concurrently when dependencies are ready.
     
@@ -101,6 +106,20 @@ async def full_flow_endpoint(req: FullFlowRequest, clean: bool = Query(True, des
             # Wait for clipping to complete
             clip_paths = await clipping_task
             logging.info(f"Clipping completed, generated {len(clip_paths)} clips")
+
+            # Optionally generate a captioned video using the first clip (or the full video if no clips)
+            captioned_video_path = None
+            if captions:
+                try:
+                    # Use the first clip if available, else the original video
+                    input_video = clip_paths[0] if clip_paths else video_path
+                    output_captioned = str(Path(input_video).with_name(f"captioned_{Path(input_video).name}"))
+                    # Use the transcript path already obtained
+                    generate_captions(input_video, str(req.url), output_captioned)
+                    captioned_video_path = output_captioned
+                    logging.info(f"Captioned video generated at {output_captioned}")
+                except Exception as e:
+                    logging.error(f"Captioned video generation failed: {e}")
             
         except Exception as e:
             logging.error(f"Full flow pipeline failed: {str(e)}")
@@ -129,4 +148,12 @@ async def full_flow_endpoint(req: FullFlowRequest, clean: bool = Query(True, des
     else:
         logging.info("Skipping cleanup of temporary files")
 
-    return FullFlowResponse(clip_paths=clip_paths)
+    # Optionally include captioned video path in response if generated
+    response = FullFlowResponse(clip_paths=clip_paths)
+    if 'captioned_video_path' in locals() and captioned_video_path:
+        # If your FullFlowResponse supports extra fields, add it; otherwise, log it
+        if hasattr(response, 'captioned_video_path'):
+            response.captioned_video_path = captioned_video_path
+        else:
+            logging.info(f"Captioned video path: {captioned_video_path}")
+    return response

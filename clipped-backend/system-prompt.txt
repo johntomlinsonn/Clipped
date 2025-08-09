@@ -39,10 +39,11 @@ You are an expert comedic video analyst with a deep understanding of reality TV 
    - Look for natural conversation breaks or scene transitions to determine where moments truly end.
 
 8. **Timing Rules:**
-   - Each clip must be between **15 and 150 seconds** (2 minutes, 30 seconds max).
+   - Each clip must be between **20 and 150 seconds** (2 minutes, 30 seconds max).
    - Shorter is better — but never sacrifice payoff just to shorten.
    - Never extract a clip **under 15 seconds**, even if funny.
    - Avoid clipping videos that are around 15 seconds, only clip them if it includes a full moment
+   - Anything that is shorter than 18 seconds will not be accepted at all 
 
 9. **Only make cuts at natural transitions:**
    - The end of a joke,
